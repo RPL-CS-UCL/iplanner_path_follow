@@ -151,6 +151,7 @@ void pathHandler(const nav_msgs::Path::ConstPtr& pathIn)
     path.poses[i].pose.position.z = pathIn->poses[i].pose.position.z;
   }
 
+  // NOTE(gogojjh): The vehicle pose at the time receive the path
   vehicleXRec = vehicleX;
   vehicleYRec = vehicleY;
   vehicleZRec = vehicleZ;
@@ -166,22 +167,29 @@ void joystickHandler(const sensor_msgs::Joy::ConstPtr& joy)
 {
   joyTime = ros::Time::now().toSec();
 
-  joySpeedRaw = sqrt(joy->axes[3] * joy->axes[3] + joy->axes[4] * joy->axes[4]);
-  joySpeed = joySpeedRaw;
-  if (joySpeed > 1.0) joySpeed = 1.0;
-  if (joy->axes[4] == 0) joySpeed = 0;
-  joyYaw = joy->axes[3];
-  if (joySpeed == 0 && noRotAtStop) joyYaw = 0;
-
-  if (joy->axes[4] < 0 && !twoWayDrive) {
-    joySpeed = 0;
-    joyYaw = 0;
-  }
-
-  if (joy->axes[2] > -0.1) {
-    autonomyMode = false;
-  } else {
+  if (joy->buttons[6] > 0.1) {
+    // NOTE(gogojjh): Click one button to switch autonomy
+    joySpeed = 1.0;
     autonomyMode = true;
+  } else {
+    // NOTE(gogojjh): Other logic
+    joySpeedRaw = sqrt(joy->axes[3] * joy->axes[3] + joy->axes[4] * joy->axes[4]);
+    joySpeed = joySpeedRaw;
+    if (joySpeed > 1.0) joySpeed = 1.0;
+    if (joy->axes[4] == 0) joySpeed = 0;
+    joyYaw = joy->axes[3];
+    if (joySpeed == 0 && noRotAtStop) joyYaw = 0;
+
+    if (joy->axes[4] < 0 && !twoWayDrive) {
+      joySpeed = 0;
+      joyYaw = 0;
+    }
+
+    if (joy->axes[2] > -0.1) {
+      autonomyMode = false;
+    } else {
+      autonomyMode = true;
+    }
   }
 }
 
@@ -282,6 +290,7 @@ int main(int argc, char** argv)
       float endDisY = path.poses[pathSize - 1].pose.position.y - vehicleYRel;
       float endDis = sqrt(endDisX * endDisX + endDisY * endDisY);
 
+      // NOTE(gogojjh): compute the distance between the robot and desired waypoint
       float disX, disY, dis;
       while (pathPointID < pathSize - 1) {
         disX = path.poses[pathPointID].pose.position.x - vehicleXRel;
